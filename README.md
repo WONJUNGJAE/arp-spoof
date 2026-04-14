@@ -1,5 +1,10 @@
 # arp-spoof
 
+## 교수님 필독
+현재 영상에서 패킷이 4개가 아닌 총 5개가 잡히는데 교수님 ppt 12장에서 최신 os가 자신에게 오면 안되는 패킷을 자동으로 한번 더 relay한다
+이 내용이 잡혔습니다( 친구 victim 컴퓨터에서 ping으로 1개 보낼때 정상적으로 loss 없이 답장이 온거까지 확인이 되었고 과제 의도대로 총 4개의 패킷이 잡혔는데 wireshark에서 지금 영상속 18번 패킷(즉 하나 더 온거 그거) 을 분석해보니 지금 17번 패킷과 완전 동일한데 대신에 ttl만 1개 더 차이나는게 보였습니다 (17번 패킷은 정상적인 Attacker -> gateway로 relay request 인데 이건 제 코드 에서 보내진거고 18번 패킷은 똑같은 Attacker -> gateway relay request 인데 os커널이 보낸 relay request입니다) 
+
+
 ## 실습 환경
 
 | 역할 | IP |
